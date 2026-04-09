@@ -10,26 +10,23 @@ namespace ECommerceAPI.API;
 
 public class AuthController : ControllerBase
 {
-    [HttpGet]
-    public IActionResult Get()
-    {
-        return Ok();
-    }
+    
     
     [AllowAnonymous]
     [HttpPost("signup")]
-    public async Task<IActionResult> Post([FromBody] UserSignUpDto dto)
+    public async Task<IActionResult> Post([FromBody] SignUpResponseDto responseDto)
     {
         //await _authService.SignUpAsync(dto);
         return Ok();
     }
-    
+
+    [AllowAnonymous]
     [HttpPost("signin")]
-    public async Task <IActionResult> Post([FromBody] UserSignInDto dto)
+    public async Task<IActionResult> Post([FromBody] SignInResponseDto responseDto)
     {
         //await _authService.SignInAsync(dto);
         //return OK(new {Token})
-        
+
         return Ok();
     }
-}
+};
