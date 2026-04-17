@@ -1,3 +1,3 @@
 namespace ECommerceAPI.Domain;
 
-public record SignUpResponseDto( string Email, string Password, string FullName);
+public record RegisterRequestDto(string FullName, string Email, string Password);
