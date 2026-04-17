@@ -1,32 +1,27 @@
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+using ECommerceAPI.Application;
 using ECommerceAPI.Domain;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
-namespace ECommerceAPI.API;
+namespace ECommerceAPI.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-
-public class AuthController : ControllerBase
+public class AuthController(AuthService authService) : ControllerBase
 {
-    
-    
     [AllowAnonymous]
-    [HttpPost("signup")]
-    public async Task<IActionResult> Post([FromBody] SignUpResponseDto responseDto)
+    [HttpPost("register")]
+    public async Task<IActionResult> Register([FromBody] RegisterRequestDto dto)
     {
-        //await _authService.SignUpAsync(dto);
+        await authService.RegisterAsync(dto);
         return Ok();
     }
 
     [AllowAnonymous]
-    [HttpPost("signin")]
-    public async Task<IActionResult> Post([FromBody] SignInResponseDto responseDto)
+    [HttpPost("login")]
+    public async Task<IActionResult> Login([FromBody] LoginRequestDto dto)
     {
-        //await _authService.SignInAsync(dto);
-        //return OK(new {Token})
-
-        return Ok();
+        var response = await authService.LoginAsync(dto);
+        return Ok(response);
     }
-};
+}
