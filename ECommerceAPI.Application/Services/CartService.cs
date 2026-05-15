@@ -1,18 +1,14 @@
 using ECommerceAPI.Domain;
 using ECommerceAPI.Domain.Entities;
-using ECommerceAPI.Infrastructure.Persistence;
-using Microsoft.EntityFrameworkCore;
+using ECommerceAPI.Domain.Repositories;
 
 namespace ECommerceAPI.Application.Services;
 
-public class CartService(AppDbContext db, ProductService productService)
+public class CartService(ICartRepository cartRepository, IProductRepository productRepository)
 {
     public async Task<CartDto> GetCartAsync(Guid userId)
     {
-        var cart = await db.Carts
-            .Include(c => c.Items)
-            .ThenInclude(ci => ci.Product)
-            .FirstOrDefaultAsync(c => c.UserId == userId)
+        var cart = await cartRepository.GetWithItemsAsync(userId)
             ?? throw new KeyNotFoundException($"Cart for user '{userId}' not found.");
 
         return MapToDto(cart);
@@ -23,31 +19,25 @@ public class CartService(AppDbContext db, ProductService productService)
         if (quantity <= 0)
             throw new ArgumentException("Quantity must be greater than 0.");
 
-        if (!await productService.HasStockAsync(productId, quantity))
+        if (!await productRepository.HasStockAsync(productId, quantity))
             throw new InvalidOperationException("Product not available or insufficient stock.");
 
-        var cart = await db.Carts
-            .Include(c => c.Items)
-            .ThenInclude(ci => ci.Product)
-            .FirstOrDefaultAsync(c => c.UserId == userId)
+        var cart = await cartRepository.GetWithItemsAsync(userId)
             ?? throw new KeyNotFoundException($"Cart for user '{userId}' not found.");
 
-        var product = await db.Products.FirstOrDefaultAsync(p => p.Id == productId && p.IsActive)
+        var product = await productRepository.GetActiveByIdAsync(productId)
             ?? throw new KeyNotFoundException("Product not found.");
 
         cart.AddItem(product, quantity);
         cart.UpdatedAt = DateTime.UtcNow;
 
-        await db.SaveChangesAsync();
+        await cartRepository.SaveChangesAsync();
         return MapToDto(cart);
     }
 
     public async Task<CartDto> RemoveFromCartAsync(Guid userId, Guid productId)
     {
-        var cart = await db.Carts
-            .Include(c => c.Items)
-            .ThenInclude(ci => ci.Product)
-            .FirstOrDefaultAsync(c => c.UserId == userId)
+        var cart = await cartRepository.GetWithItemsAsync(userId)
             ?? throw new KeyNotFoundException($"Cart for user '{userId}' not found.");
 
         if (!cart.Items.Any(i => i.ProductId == productId))
@@ -56,7 +46,7 @@ public class CartService(AppDbContext db, ProductService productService)
         cart.RemoveItem(productId);
         cart.UpdatedAt = DateTime.UtcNow;
 
-        await db.SaveChangesAsync();
+        await cartRepository.SaveChangesAsync();
         return MapToDto(cart);
     }
 
@@ -65,45 +55,37 @@ public class CartService(AppDbContext db, ProductService productService)
         if (newQuantity <= 0)
             throw new ArgumentException("Quantity must be greater than 0.");
 
-        var cart = await db.Carts
-            .Include(c => c.Items)
-            .ThenInclude(ci => ci.Product)
-            .FirstOrDefaultAsync(c => c.UserId == userId)
+        var cart = await cartRepository.GetWithItemsAsync(userId)
             ?? throw new KeyNotFoundException($"Cart for user '{userId}' not found.");
 
         var item = cart.Items.FirstOrDefault(i => i.ProductId == productId)
             ?? throw new KeyNotFoundException($"Product '{productId}' not in cart.");
 
-        if (!await productService.HasStockAsync(productId, newQuantity))
+        if (!await productRepository.HasStockAsync(productId, newQuantity))
             throw new InvalidOperationException("Insufficient stock for the requested quantity.");
 
         item.Quantity = newQuantity;
         cart.UpdatedAt = DateTime.UtcNow;
 
-        await db.SaveChangesAsync();
+        await cartRepository.SaveChangesAsync();
         return MapToDto(cart);
     }
 
     public async Task<CartDto> ClearCartAsync(Guid userId)
     {
-        var cart = await db.Carts
-            .Include(c => c.Items)
-            .FirstOrDefaultAsync(c => c.UserId == userId)
+        var cart = await cartRepository.GetWithItemsAsync(userId)
             ?? throw new KeyNotFoundException($"Cart for user '{userId}' not found.");
 
-        db.CartItems.RemoveRange(cart.Items);
+        await cartRepository.ClearItemsAsync(cart);
         cart.UpdatedAt = DateTime.UtcNow;
 
-        await db.SaveChangesAsync();
+        await cartRepository.SaveChangesAsync();
         return MapToDto(cart);
     }
 
     public async Task<(bool IsValid, string? ErrorMessage)> ValidateCartForCheckoutAsync(Guid userId)
     {
-        var cart = await db.Carts
-            .Include(c => c.Items)
-            .ThenInclude(ci => ci.Product)
-            .FirstOrDefaultAsync(c => c.UserId == userId);
+        var cart = await cartRepository.GetWithItemsAsync(userId);
 
         if (cart is null) return (false, "Cart not found.");
         if (!cart.Items.Any()) return (false, "Cart is empty.");

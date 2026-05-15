@@ -1,3 +1,4 @@
+using ECommerceAPI.API.Extensions;
 using ECommerceAPI.Application;
 using ECommerceAPI.Domain;
 using Microsoft.AspNetCore.Authorization;
@@ -10,46 +11,26 @@ namespace ECommerceAPI.API.Controllers;
 public class ProductsController(ProductService productService) : ControllerBase
 {
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<object>>> GetProducts(
+    public async Task<ActionResult<ApiResponse<List<ProductDto>>>> GetProducts(
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10)
     {
-        var (products, totalCount) = await productService.GetProductsAsync(pageNumber, pageSize);
-        return Ok(new ApiResponse<object>
-        {
-            Success = true,
-            Data = new
-            {
-                Products = products,
-                TotalCount = totalCount,
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
-            }
-        });
+        var (products, total) = await productService.GetProductsAsync(pageNumber, pageSize);
+        Response.AddPaginationHeaders(total, pageNumber, pageSize);
+        return Ok(new ApiResponse<List<ProductDto>> { Success = true, Data = products });
     }
 
     [HttpGet("search")]
-    public async Task<ActionResult<ApiResponse<object>>> SearchProducts(
+    public async Task<ActionResult<ApiResponse<List<ProductDto>>>> SearchProducts(
         [FromQuery] string? name = null,
         [FromQuery] decimal? minPrice = null,
         [FromQuery] decimal? maxPrice = null,
         [FromQuery] int pageNumber = 1,
         [FromQuery] int pageSize = 10)
     {
-        var (products, totalCount) = await productService.SearchProductsAsync(name, minPrice, maxPrice, pageNumber, pageSize);
-        return Ok(new ApiResponse<object>
-        {
-            Success = true,
-            Data = new
-            {
-                Products = products,
-                TotalCount = totalCount,
-                PageNumber = pageNumber,
-                PageSize = pageSize,
-                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
-            }
-        });
+        var (products, total) = await productService.SearchProductsAsync(name, minPrice, maxPrice, pageNumber, pageSize);
+        Response.AddPaginationHeaders(total, pageNumber, pageSize);
+        return Ok(new ApiResponse<List<ProductDto>> { Success = true, Data = products });
     }
 
     [HttpGet("{id}")]
