@@ -1,8 +1,9 @@
+using ECommerceAPI.API.Responses;
+using ECommerceAPI.Application.Services;
+using ECommerceAPI.Domain;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using ECommerceAPI.Application.Services;
 using System.Security.Claims;
-using ECommerceAPI.Domain;
 
 namespace ECommerceAPI.API.Controllers
 {
